@@ -11,6 +11,15 @@ class MainTabontroller: UITabBarController {
     
     // MARK: - Properties
     
+    let actionButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.tintColor = .white
+        button.backgroundColor = .twitterBlue
+        button.setImage(UIImage(named: "new_tweet"), for: .normal)
+        button.addTarget(self, action: #selector(actionButtonTapped), for: .touchUpInside)
+        return button
+    }()
+    
     // MARK: - Lifecycle
 
     override func viewDidLoad() {
@@ -18,28 +27,40 @@ class MainTabontroller: UITabBarController {
                 
         configureViewControllers()
         uiTabBarSetting()
-//        uiNavBarSetting()
-        
+        configureUI()
+    }
+    
+    // MARK: - Selectors
+    
+    @objc func actionButtonTapped() {
+        print(123)
     }
     
     // MARK: - Helpers
     
+    func configureUI() {
+        view.addSubview(actionButton)
+        actionButton.anchor(bottom: view.safeAreaLayoutGuide.bottomAnchor, right: view.rightAnchor,
+                            paddingBottom: 64, paddingRight: 26, width: 56, height: 56)
+        actionButton.layer.cornerRadius = 56 / 2
+    }
+    
     func configureViewControllers() {
-        
+            
         let feed = FeedController()
-        _ = templateNavigationController(image: UIImage(named: "home_unselected"), rootViewController: feed)
-                
+        let feedNavigationController = templateNavigationController(image: UIImage(named: "home_unselected"), rootViewController: feed)
+
         let explore = ExploreController()
-        _ = templateNavigationController(image: UIImage(named: "search_unselected"), rootViewController: explore)
-        
+        let exploreNavigationController = templateNavigationController(image: UIImage(named: "search_unselected"), rootViewController: explore)
+
         let notifications = NotificationsController()
-        _ = templateNavigationController(image: UIImage(named: "like_filled"), rootViewController: notifications)
+        let notificationNavigationController = templateNavigationController(image: UIImage(named: "like_filled"), rootViewController: notifications)
 
         let conversations = ConversationsController()
-        _ = templateNavigationController(image: UIImage(named: "ic_mail_outline_white_2x-1"), rootViewController: conversations)
-        
-        viewControllers = [feed, explore, notifications, conversations]
-        
+        let conversationNavigationController = templateNavigationController(image: UIImage(named: "ic_mail_outline_white_2x-1"), rootViewController: conversations)
+
+        viewControllers = [feedNavigationController, exploreNavigationController, notificationNavigationController, conversationNavigationController]
+            
     }
     
     func templateNavigationController(image: UIImage?, rootViewController: UIViewController) ->
@@ -54,7 +75,6 @@ class MainTabontroller: UITabBarController {
         if #available(iOS 15.0, *){
             let appearance = UITabBarAppearance()
             appearance.configureWithOpaqueBackground()
-            appearance.backgroundColor = .red
             tabBar.standardAppearance = appearance
             tabBar.scrollEdgeAppearance = appearance
         }
