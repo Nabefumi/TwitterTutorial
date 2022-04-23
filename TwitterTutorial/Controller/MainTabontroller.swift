@@ -6,10 +6,20 @@
 //
 
 import UIKit
+import Firebase
 
 class MainTabontroller: UITabBarController {
     
     // MARK: - Properties
+    
+    var user: User? {
+        didSet {
+            guard let nav = viewControllers?[0] as? UINavigationController else { return }
+            guard let feed = nav.viewControllers.first as? FeedController else { return }
+            
+            feed.user = user
+        }
+    }
     
     let actionButton: UIButton = {
         let button = UIButton(type: .system)
@@ -25,15 +35,57 @@ class MainTabontroller: UITabBarController {
     override func viewDidLoad() {
         super.viewDidLoad()
                 
-        configureViewControllers()
-        uiTabBarSetting()
-        configureUI()
+//        logUserOut()
+        view.backgroundColor = .twitterBlue
+        authenticateUserAndConfigureUI()
+
     }
+    
+    // MARK: - API
+    
+//    func fetchUser(withUid uid: String, completion: @escaping(User) -> Void) {
+//        COLLECTION_USERS.document(uid).getDocument { (snapshot, error) in
+//            guard let dictionary = snapshot?.data() else { return }
+//            let user = User(dictionary: dictionary)
+//            completion(user)
+//        }
+//    }
+    
+    func fetchUser() {
+        UserService.shared.fetchUser { user in
+            self.user = user
+        }
+    }
+    
+    func authenticateUserAndConfigureUI() {
+        if Auth.auth().currentUser == nil {
+            DispatchQueue.main.async {
+                let nav = UINavigationController(rootViewController: LoginController())
+                nav.modalPresentationStyle = .fullScreen
+                self.present(nav, animated: true, completion: nil)
+            }
+        } else {
+            
+            configureViewControllers()
+            uiTabBarSetting()
+            configureUI()
+            fetchUser()
+        }
+    }
+    
+    func logUserOut() {
+        do {
+            try Auth.auth().signOut()
+        } catch let error {
+                print("DEBUG: Failed sign out with error \(error.localizedDescription)")
+        }
+    }
+
     
     // MARK: - Selectors
     
     @objc func actionButtonTapped() {
-        print(123)
+        p
     }
     
     // MARK: - Helpers
