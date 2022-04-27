@@ -6,9 +6,10 @@
 //
 
 import UIKit
+import FirebaseAuth
 import Firebase
 
-class MainTabontroller: UITabBarController {
+class MainTabController: UITabBarController {
     
     // MARK: - Properties
     
@@ -31,28 +32,35 @@ class MainTabontroller: UITabBarController {
     }()
     
     // MARK: - Lifecycle
-
     override func viewDidLoad() {
         super.viewDidLoad()
-                
-//        logUserOut()
+        
+        logUserOut()
         view.backgroundColor = .twitterBlue
         authenticateUserAndConfigureUI()
-
+        //apiCall()
     }
+    
+//    func apiCall() {
+//
+//        let url = URL(string: "https://api.football-data.org/v2/matches")!
+//        let token = "9a940fc7349d438aa5becea8620aa19c"
+//        var request = URLRequest(url: url)
+//        request.addValue("9a940fc7349d438aa5becea8620aa19c", forHTTPHeaderField: "X-Auth-Token")
+//        request.httpMethod = "GET"
+//
+//
+//        URLSession.shared.dataTask(with: request) { (data, response , error) in
+//            guard let data = data else { return }
+//            print(String(data: data, encoding: .utf8) ?? "Invalid JSON")
+//        }.resume()
+//    }
     
     // MARK: - API
     
-//    func fetchUser(withUid uid: String, completion: @escaping(User) -> Void) {
-//        COLLECTION_USERS.document(uid).getDocument { (snapshot, error) in
-//            guard let dictionary = snapshot?.data() else { return }
-//            let user = User(dictionary: dictionary)
-//            completion(user)
-//        }
-//    }
-    
     func fetchUser() {
-        UserService.shared.fetchUser { user in
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        UserService.shared.fetchUser(uid: uid) { (user) in
             self.user = user
         }
     }
@@ -65,9 +73,7 @@ class MainTabontroller: UITabBarController {
                 self.present(nav, animated: true, completion: nil)
             }
         } else {
-            
             configureViewControllers()
-            uiTabBarSetting()
             configureUI()
             fetchUser()
         }
@@ -76,73 +82,51 @@ class MainTabontroller: UITabBarController {
     func logUserOut() {
         do {
             try Auth.auth().signOut()
-        } catch let error {
-                print("DEBUG: Failed sign out with error \(error.localizedDescription)")
+        } catch(let error) {
+            print("DEBUG: Failed to sign out with error \(error.localizedDescription)")
         }
     }
-
     
     // MARK: - Selectors
     
     @objc func actionButtonTapped() {
-        p
+        guard let user = user else { return }
+        let controller = UploadTweetController(user: user, config: .tweet)
+        let nav = UINavigationController(rootViewController: controller)
+        nav.modalPresentationStyle = .fullScreen
+        present(nav, animated: true, completion: nil)
     }
     
     // MARK: - Helpers
     
     func configureUI() {
         view.addSubview(actionButton)
-        actionButton.anchor(bottom: view.safeAreaLayoutGuide.bottomAnchor, right: view.rightAnchor,
-                            paddingBottom: 64, paddingRight: 26, width: 56, height: 56)
+        actionButton.anchor(bottom: view.safeAreaLayoutGuide.bottomAnchor, right: view.rightAnchor, paddingBottom: 64, paddingRight: 16, width: 56, height: 56)
         actionButton.layer.cornerRadius = 56 / 2
     }
     
     func configureViewControllers() {
-            
-        let feed = FeedController()
-        let feedNavigationController = templateNavigationController(image: UIImage(named: "home_unselected"), rootViewController: feed)
-
+        let feed = FeedController(collectionViewLayout: UICollectionViewFlowLayout())
+        let nav1 = templateNavigationController(image: UIImage(named: "home_unselected"), rootViewController: feed)
+        
         let explore = ExploreController()
-        let exploreNavigationController = templateNavigationController(image: UIImage(named: "search_unselected"), rootViewController: explore)
-
+        let nav2 = templateNavigationController(image: UIImage(named: "search_unselected"), rootViewController: explore)
+        
         let notifications = NotificationsController()
-        let notificationNavigationController = templateNavigationController(image: UIImage(named: "like_filled"), rootViewController: notifications)
-
+        let nav3 = templateNavigationController(image: UIImage(named: "like_unselected"), rootViewController: notifications)
+        
         let conversations = ConversationsController()
-        let conversationNavigationController = templateNavigationController(image: UIImage(named: "ic_mail_outline_white_2x-1"), rootViewController: conversations)
-
-        viewControllers = [feedNavigationController, exploreNavigationController, notificationNavigationController, conversationNavigationController]
-            
+        let nav4 = templateNavigationController(image: UIImage(named: "ic_mail_outline_white_2x-1"), rootViewController: conversations)
+        
+        viewControllers = [nav1, nav2, nav3, nav4]
     }
     
-    func templateNavigationController(image: UIImage?, rootViewController: UIViewController) ->
-    UINavigationController {
+    func templateNavigationController(image: UIImage?, rootViewController: UIViewController) -> UINavigationController {
+        
         let nav = UINavigationController(rootViewController: rootViewController)
         nav.tabBarItem.image = image
         nav.navigationBar.barTintColor = .white
+        
         return nav
     }
-    
-    func uiTabBarSetting() {
-        if #available(iOS 15.0, *){
-            let appearance = UITabBarAppearance()
-            appearance.configureWithOpaqueBackground()
-            tabBar.standardAppearance = appearance
-            tabBar.scrollEdgeAppearance = appearance
-        }
-    }
-    
-//    func uiTabBarSetting() {
-//        if #available(iOS 15.0, *) {
-//            let appearance = UINavigationBarAppearance()
-//            appearance.configureWithOpaqueBackground()
-//            // NavigationBarの背景色の設定
-//            appearance.backgroundColor = UIColor.systemGreen
-//            // NavigationBarのタイトルの文字色の設定
-//            appearance.titleTextAttributes = [NSAttributedString.Key.foregroundColor: UIColor.white]
-//            self.navigationController?.navigationBar.standardAppearance = appearance
-//            self.navigationController?.navigationBar.scrollEdgeAppearance = appearance
-//        }
-//    }
-
 }

@@ -6,119 +6,57 @@
 //
 
 import UIKit
-import Firebase
-import JGProgressHUD
 
-protocol AuthenticationControllerProtocol {
-    func checkFormStatus()
-}
-
-protocol AuthenticationDelegate: class {
-    func authenticationComplete()
-}
 
 class LoginController: UIViewController {
     
     // MARK: - Properties
     
-    private var viewModel = LoginViewModel()
-    
-    weak var delegate: AuthenticationDelegate?
-    
-    private let iconImage: UIImageView = {
+    private let logoImageView: UIImageView = {
         let iv = UIImageView()
-        iv.image = UIImage(systemName: "bubble.right")
-        iv.tintColor = .white
+        iv.contentMode = .scaleAspectFit
+        iv.clipsToBounds = true
+        iv.image = #imageLiteral(resourceName: "TwitterLogo")
         return iv
     }()
     
-    private lazy var emailConteinerView: InputContainerView = {
-        
-        return InputContainerView(image: #imageLiteral(resourceName: "ic_mail_outline_white_2x-1"),
-                                  textField: emailTextField)//#imageLiteral(
-        
+    private lazy var emailContainerView: UIView = {
+        let view = Utilities().inputContainerView(withImage: UIImage(named: "ic_mail_outline_white_2x-1")!, textField: emailTextField)
+        return view
     }()
     
-    private lazy var  passwordConteinerView: InputContainerView = {
-        return InputContainerView(image: #imageLiteral(resourceName: "ic_lock_outline_white_2x"),
-                                  textField: passwordTextField)
+    private lazy var passwordContainerView: UIView = {
+        let view = Utilities().inputContainerView(withImage: UIImage(named: "ic_lock_outline_white_2x")!, textField: passwordTextField)
+        return view
+    }()
+    
+    private let emailTextField: UITextField = {
+        let tf = Utilities().textField(withPlaceholder: "Email")
+        return tf
+    }()
+    
+    private let passwordTextField: UITextField = {
+        let tf = Utilities().textField(withPlaceholder: "Password", isSecured: true)
+        return tf
     }()
     
     private let loginButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("Log in", for: .normal)
+        button.setTitle("Log In", for: .normal)
+        button.setTitleColor(.twitterBlue, for: .normal)
+        button.backgroundColor = .white
+        button.heightAnchor.constraint(equalToConstant: 50).isActive = true
         button.layer.cornerRadius = 5
-        button.titleLabel?.font = UIFont.boldSystemFont(ofSize: 18)
-        button.backgroundColor = .systemRed
-        button.backgroundColor = #colorLiteral(red: 0.9098039269, green: 0.4784313738, blue: 0.6431372762, alpha: 1)
-        button.setTitleColor(.white, for: .normal)
-        button.setHeight(height: 50)
-        button.isEnabled = false
+        button.titleLabel?.font = UIFont.boldSystemFont(ofSize: 20)
         button.addTarget(self, action: #selector(handleLogin), for: .touchUpInside)
         return button
     }()
     
-    private let emailTextField = CustomTextField(placeholder: "Email")
-    
-    private let passwordTextField: CustomTextField = {
-        let tf = CustomTextField(placeholder: "password")
-        tf.isSecureTextEntry = true
-        return tf
-    }()
-    
-    private let dontHaveAcountButton: UIButton = {
-        let button = UIButton(type: .system)
-        let attributedTitle = NSMutableAttributedString(string: "Dont't have an account?  ",
-                                                        attributes: [.font: UIFont.systemFont(ofSize: 16), .foregroundColor: UIColor.white])
-        attributedTitle.append(NSAttributedString(string: "Sign Up",
-                                                  attributes: [.font: UIFont.boldSystemFont(ofSize: 16), .foregroundColor: UIColor.white]))
-        button.setAttributedTitle(attributedTitle, for: .normal)
+    private let dontHaveAccountButton: UIButton = {
+        let button = Utilities().attributedButton("Don't have an account?", " Sign Up")
         button.addTarget(self, action: #selector(handleShowSignUp), for: .touchUpInside)
         return button
-        
     }()
-    
-    // MARK: - Selectors
-    
-    @objc func handleLogin() {
-        guard let email = emailTextField.text else { return }
-        guard let password = passwordTextField.text else { return }
-        
-        showLoader(true, withText: "Loggin in")
-        
-        AuthService.shared.logUserIn(withEmail: email, password: password) { result, error in
-            if let error = error {
-                self.showLoader(false)
-                self.showError(error.localizedDescription)
-                return
-            }
-            self.showLoader(false)
-//            self.delegate?.authenticationComplete()
-            
-            guard let window = UIApplication.shared.windows.first(where: { $0.isKeyWindow }) else {
-                return }
-            guard let tab = window.rootViewController as? MainTabontroller else { return }
-            
-            tab.authenticateUserAndConfigureUI()
-            
-            self.dismiss(animated: true, completion: nil)
-        }
-    }
-    
-    @objc func handleShowSignUp() {
-        let controller = RegistrarionController()
-        controller.delegate = delegate
-        navigationController?.pushViewController(controller, animated: true)
-    }
-    
-    @objc func textDidChange(sender: UITextField) {
-        if sender == emailTextField {
-            viewModel.email = sender.text
-        } else {
-            viewModel.password = sender .text
-        }
-        checkFormStatus()
-    }
     
     // MARK: - Lifecycle
     
@@ -127,48 +65,50 @@ class LoginController: UIViewController {
         configureUI()
     }
     
+    // MARK: - Selectors
+    
+    @objc func handleShowSignUp() {
+        let controller = RegistrationController()
+        navigationController?.pushViewController(controller, animated: true)
+    }
+    
+    @objc func handleLogin() {
+        guard let email = emailTextField.text else { return }
+        guard let password = passwordTextField.text else { return }
+        
+        AuthService.shared.logUserIn(withEmail: email, password: password) { (result, error) in
+            if let error = error {
+                print("DEBUG: Error log in \(error.localizedDescription)")
+            }
+            
+            guard let window = UIApplication.shared.windows.first(where: { $0.isKeyWindow }) else { return }
+            guard let tab = window.rootViewController as? MainTabController else { return }
+            tab.authenticateUserAndConfigureUI()
+            
+            self.dismiss(animated: true, completion: nil)
+        }
+    }
+    
     // MARK: - Helpers
     
     func configureUI() {
-        navigationController?.navigationBar.isHidden = true
+        view.backgroundColor = .twitterBlue
         navigationController?.navigationBar.barStyle = .black
+        navigationController?.navigationBar.isHidden = true
         
-        configureGradientLayer()
+        view.addSubview(logoImageView)
+        logoImageView.centerX(inView: view, topAnchor: view.safeAreaLayoutGuide.topAnchor, paddingTop: 0)
+        logoImageView.setDimensions(width: 150, height: 150)
         
-        view.addSubview(iconImage)
-        iconImage.centerX(inView: view)
-        iconImage.anchor(top: view.safeAreaLayoutGuide.topAnchor, paddingTop: 32)
-        iconImage.setDimensions(height: 120, width: 120)
+        let stackView = UIStackView(arrangedSubviews: [emailContainerView, passwordContainerView, loginButton])
+        stackView.axis = .vertical
+        stackView.spacing = 20
+        stackView.distribution = .fillEqually
         
-        let stack = UIStackView(arrangedSubviews: [emailConteinerView,
-                                                   passwordConteinerView,
-                                                   loginButton])
+        view.addSubview(stackView)
+        stackView.anchor(top: logoImageView.bottomAnchor, left: view.leftAnchor, right: view.rightAnchor, paddingLeft: 32, paddingRight: 32)
         
-        stack.axis = .vertical
-        stack.spacing = 16
-        
-        view.addSubview(stack)
-        stack.anchor(top: iconImage.bottomAnchor, left: view.leftAnchor, right: view.rightAnchor, paddingTop: 32, paddingLeft: 32, paddingRight: 32)
-        
-        view.addSubview(dontHaveAcountButton)
-        dontHaveAcountButton.anchor(left: view.leftAnchor,
-                                    bottom: view.safeAreaLayoutGuide.bottomAnchor,
-                                    right: view.rightAnchor, paddingLeft: 32, paddingRight: 32)
-        
-        emailTextField.addTarget(self, action: #selector(textDidChange), for: .editingChanged)
-        passwordTextField.addTarget(self, action: #selector(textDidChange), for: .editingChanged)
-
-    }
-}
-
-extension LoginController: AuthenticationControllerProtocol {
-    func checkFormStatus() {
-        if viewModel.formIsValid {
-            loginButton.isEnabled = true
-            loginButton.backgroundColor = #colorLiteral(red: 0.8078431487, green: 0.02745098062, blue: 0.3333333433, alpha: 1)
-        } else {
-            loginButton.isEnabled = false
-            loginButton.backgroundColor = #colorLiteral(red: 0.9098039269, green: 0.4784313738, blue: 0.6431372762, alpha: 1)
-        }
+        view.addSubview(dontHaveAccountButton)
+        dontHaveAccountButton.anchor(left: view.leftAnchor, bottom: view.safeAreaLayoutGuide.bottomAnchor, right: view.rightAnchor, paddingLeft: 40, paddingRight: 40)
     }
 }
